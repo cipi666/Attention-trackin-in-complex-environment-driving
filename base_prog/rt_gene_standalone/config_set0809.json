@@ -1,0 +1,17 @@
+{
+    "SCREEN_TOP": 35,
+    "SCREEN_BOTTOM": 16,
+    "SCREEN_WIDE": 30,
+    "O3_HEIGHT": 35.5,
+    "O3_TO_SCREEN": 0,
+    "O3_TO_FACE": 49.5,
+    "FOCUS": 1139.32,
+    "FACE_LEFT": 39,
+    "FACE_TOP": 39,
+    "FACE_RIGHT": 451,
+    "FACE_BOTTOM": 554,
+    "K_PX_COMPRESS": 1,
+    "EYE_RIGHT_WIDTH": 2.20,
+    "EYE_LEFT_WIDTH": 2.30,
+    "MIRROR": 1
+}

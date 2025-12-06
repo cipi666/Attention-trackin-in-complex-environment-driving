@@ -1,0 +1,15 @@
+类别, x1, y1, x2, y2
+steering_wheel, 539, 677, 1381, 1078
+car_window, 0, 246, 369, 969
+rearview_mirror, 0, 629, 232, 885
+head, 119, 73, 433, 314
+reflector, 1360, 199, 1920, 422
+environment, 460, 160, 1920, 510
+car, 471, 431, 792, 660
+road, 770, 515, 1918, 651
+dashboard, 737, 748, 1195, 947
+car, 801, 499, 855, 539
+air_condition, 354, 876, 618, 973
+air_condition, 1353, 826, 1734, 947
+windshield_wiper, 710, 634, 1862, 695
+windshield_wiper, 579, 639, 1669, 699

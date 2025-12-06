@@ -1,0 +1,906 @@
+//该文件是标定用的html文件.需下载到本地后,用浏览器打开
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视线标定系统</title>
+    <style>
+        /* 新增全屏闪白动画 */
+        @keyframes fullScreenFlash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        .full-screen-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 9999;
+            pointer-events: none;
+            animation: fullScreenFlash 0.3s ease-in-out;
+        }
+        
+        /* 原有样式保持不变 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; }
+        
+        #container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #16213e, #0f3460); /* 深色渐变背景 */
+            color: white;
+            overflow: hidden;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.7);
+        }
+        
+        .calibration-point {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            opacity: 0.6; /* 初始半透明 */
+        }
+        
+        .active-point {
+            animation: pulse 1.5s infinite alternate;
+            transform: translate(-50%, -50%) scale(1.1);
+            border: 3px solid #FFD700;
+            box-shadow: 0 0 25px #FFD700;
+            z-index: 15;
+            opacity: 1; /* 激活时不透明 */
+        }
+        
+        .flash {
+            animation: flash 0.15s;
+        }
+        
+        #progress {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 800px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+        
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+        
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px;
+            text-align: center;
+            background: rgba(10, 15, 30, 0.85); /* 深色背景 */
+            color: white;
+            padding: 25px 40px;
+            border-radius: 15px;
+            z-index: 50;
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            line-height: 1.6;
+            display: block; /* 确保默认显示 */
+        }
+        
+        #countdown {
+            font-size: 80px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+            margin: 20px 0;
+        }
+        
+        #encouragement {
+            font-size: 24px;
+            font-style: italic;
+            color: #1abc9c;
+            margin-top: 15px;
+            text-shadow: 0 0 10px rgba(26, 188, 156, 0.5);
+        }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+            100% { transform: translate(-50%, -50%) scale(1.3); box-shadow: 0 0 35px rgba(255, 215, 0, 0.9); }
+        }
+        
+        @keyframes flash {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+        
+        .trail-point {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: #e74c3c;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            box-shadow: 0 0 15px #e74c3c;
+            animation: trail-pulse 1.5s infinite alternate;
+        }
+        
+        @keyframes trail-pulse {
+            0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 10px rgba(231, 76, 60, 0.7); }
+            100% { transform: translate(-50%, -50%) scale(1.5); box-shadow: 0 0 25px rgba(231, 76, 60, 0.9); }
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+        
+        .btn {
+            padding: 14px 35px;
+            font-size: 18px;
+            border-radius: 50px;
+            border: none;
+            background: linear-gradient(135deg, #3498db, #2ecc71);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(30deg);
+            transition: all 0.6s;
+        }
+        
+        .btn:hover::after {
+            transform: rotate(30deg) translate(20%, 20%);
+        }
+        
+        .btn.exit {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
+        #preparation-list {
+            text-align: left;
+            margin: 25px 0;
+            padding-left: 30px;
+            font-size: 20px;
+            line-height: 1.8;
+        }
+        
+        #preparation-list li {
+            margin-bottom: 12px;
+            position: relative;
+        }
+        
+        #preparation-list li:before {
+            content: "•";
+            color: #3498db;
+            font-size: 24px;
+            position: absolute;
+            left: -25px;
+            top: -2px;
+            text-shadow: 0 0 10px rgba(52, 152, 219, 0.7);
+        }
+        
+        #point-info {
+            font-size: 22px;
+            margin-top: 15px;
+            color: #FFD700;
+            font-weight: bold;
+        }
+        
+        .point-label {
+            position: absolute;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            width: 60px;
+            left: -15px;
+            top: 40px;
+        }
+        
+        .center-text {
+            font-size: 16px;
+            display: block;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            left: 0;
+            top: 0;
+        }
+        
+        /* 轨迹路径样式 */
+        #trail-path {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        .trail-path {
+            stroke: rgba(255, 255, 255, 0.6); /* 半透明白色 */
+            stroke-width: 2;
+            stroke-dasharray: 5, 5; /* 虚线效果 */
+            fill: none;
+        }
+        
+        /* 星空背景效果 */
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+        
+        /* 标题装饰 */
+        .title-decoration {
+            position: absolute;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #3498db, #2ecc71, transparent);
+            border-radius: 2px;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            #instructions {
+                padding: 15px 25px;
+                font-size: 22px;
+            }
+            
+            #countdown {
+                font-size: 60px;
+            }
+            
+            #preparation-list {
+                font-size: 18px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- 星空背景 -->
+        <div id="stars"></div>
+        
+        <!-- 标定点容器 -->
+        <div id="points-container"></div>
+        
+        <!-- 轨迹点容器 -->
+        <div id="trail-container"></div>
+        
+        <!-- 轨迹路径容器 -->
+        <svg id="trail-path"></svg>
+        
+        <!-- 进度条 -->
+        <div id="progress">
+            <div id="progress-bar"></div>
+        </div>
+        
+        <!-- 说明文字 -->
+        <div id="instructions">
+            <h1 style="margin-bottom: 25px; font-size: 36px; color: #3498db; text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);">视线标定系统</h1>
+            <div class="title-decoration"></div>
+            <div style="font-size: 22px; margin: 25px 0; max-width: 800px; line-height: 1.6;">
+                请按照以下步骤准备标定流程，确保获得最佳结果:
+            </div>
+            
+            <ul id="preparation-list">
+                <li>确保电脑屏幕处于<strong style="color: #FFD700;">竖直</strong>位置</li>
+                <li>确认录屏软件已开启并设置为<strong style="color: #FFD700;">60fps</strong></li>
+                <li>确保人脸区域不会遮挡屏幕关键点</li>
+                <li>确认录屏软件的录制范围是<strong style="color: #FFD700;">整个屏幕</strong></li>
+                <li>注视关键点时保持不眨眼，每两个关键点之间请充分眨眼休息</li>
+                <li>确保网页已经<strong style="color: #FFD700;">全屏显示</strong>（按F11或使用全屏按钮）</li>
+            </ul>
+            
+            <div style="margin-top: 35px;">
+                <button id="start-btn" class="btn">开始标定</button>
+            </div>
+        </div>
+        
+        <!-- 控制按钮 -->
+        <div class="controls" style="display: none;" id="control-buttons">
+            <button id="restart-btn" class="btn">重新录制</button>
+            <button id="exit-btn" class="btn exit">退出系统</button>
+        </div>
+    </div>
+
+    <script>
+        // 配置参数
+        const CONFIG = {
+            calibrationPoints: 17, // 16点+中心点
+            pointDuration: 3000,  // 每个点停留时间(ms)
+            bufferDuration: 3000, // 点间缓冲时间(ms)
+            flashDuration: 150,   // 闪烁持续时间(ms)
+            blinkDuration: 2000,  // 眨眼预留时间(ms)
+            pointSize: 35,        // 标定点大小
+            trailSpeed: 60,      // 轨迹点移动速度(ms)
+            trailDensity: 900     // 轨迹点数量
+        };
+        
+        // 鼓励语句
+        const ENCOURAGEMENTS = [
+            "做得很好！",
+            "保持专注！",
+            "您做得非常棒！",
+            "只剩几个点了！",
+            "您的配合很重要！",
+            "专业级的注视！",
+            "您快完成了！"
+        ];
+        
+        // DOM元素
+        const pointsContainer = document.getElementById('points-container');
+        const trailContainer = document.getElementById('trail-container');
+        const trailPath = document.getElementById('trail-path');
+        const progressBar = document.getElementById('progress-bar');
+        const instructions = document.getElementById('instructions');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const exitBtn = document.getElementById('exit-btn');
+        const controlButtons = document.getElementById('control-buttons');
+        const starsContainer = document.getElementById('stars');
+        const container = document.getElementById('container');
+        
+        // 标定流程状态
+        let calibrationState = {
+            currentStep: 0,
+            totalSteps: 0,
+            points: [],
+            trailPoints: [],
+            currentPoint: null,
+            currentTrailIndex: 0,
+            isCalibrating: false,
+            isTesting: false
+        };
+        
+        // 创建星空背景
+        function createStars() {
+            const stars = 150;
+            for (let i = 0; i < stars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 3}px`;
+                star.style.height = star.style.width;
+                star.style.opacity = Math.random() * 0.5 + 0.1;
+                star.style.setProperty('--duration', `${Math.random() * 5 + 3}s`);
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        // 显示全屏闪白效果（新增函数）
+        function showFullScreenFlash() {
+            const flash = document.createElement('div');
+            flash.className = 'full-screen-flash';
+            container.appendChild(flash);
+            
+            // 动画结束后移除元素
+            setTimeout(() => {
+                flash.remove();
+            }, 300);
+        }
+        
+        // 显示指令框
+        function showInstructions() {
+            instructions.style.display = 'block';
+        }
+        
+        // 隐藏指令框
+        function hideInstructions() {
+            instructions.style.display = 'none';
+        }
+        
+        // 生成标定点位置 (16点+中心点)
+        function generateCalibrationPoints() {
+            const points = [];
+            const gridSize = 4; // 4x4网格
+            const margin = 0;   // 紧贴边界
+            
+            // 生成16个网格点
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const x = margin + (1 - 2 * margin) * (col / (gridSize - 1));
+                    const y = margin + (1 - 2 * margin) * (row / (gridSize - 1));
+                    points.push({ x, y, index: points.length + 1 });
+                }
+            }
+            
+            // 添加中心点
+            points.push({ x: 0.5, y: 0.5, isCenter: true, index: points.length + 1 });
+            
+            return points;
+        }
+        
+        // 生成连续平滑的轨迹点 - 覆盖整个屏幕
+        function generateContinuousTrail() {
+            const points = [];
+            const numPoints = CONFIG.trailDensity;
+            
+            // 创建连续路径点
+            const controlPoints = [
+                // 起点在中心
+                {x: 0.5, y: 0.5},
+                
+                // 右上角
+                {x: 0.8, y: 0.2},
+                
+                // 右下角
+                {x: 0.9, y: 0.8},
+                
+                // 左下角
+                {x: 0.2, y: 0.9},
+                
+                // 左上角
+                {x: 0.1, y: 0.1},
+                
+                // 右上边缘
+                {x: 0.9, y: 0.1},
+                
+                // 右下边缘
+                {x: 0.9, y: 0.9},
+                
+                // 左下边缘
+                {x: 0.1, y: 0.9},
+                
+                // 左上边缘
+                {x: 0.1, y: 0.1},
+                
+                // 中心
+                {x: 0.5, y: 0.5},
+                
+                // 左侧中心
+                {x: 0.1, y: 0.5},
+                
+                // 右侧中心
+                {x: 0.9, y: 0.5},
+                
+                // 上方中心
+                {x: 0.5, y: 0.1},
+                
+                // 下方中心
+                {x: 0.5, y: 0.9},
+                
+                // 回到中心
+                {x: 0.5, y: 0.5}
+            ];
+            
+            // 生成轨迹点
+            for (let i = 0; i < numPoints; i++) {
+                const t = i / numPoints;
+                const segmentCount = controlPoints.length - 1;
+                const segmentIndex = Math.floor(t * segmentCount);
+                const segmentT = t * segmentCount - segmentIndex;
+                
+                const p0 = controlPoints[segmentIndex];
+                const p1 = controlPoints[segmentIndex + 1];
+                
+                // 线性插值
+                const x = p0.x + (p1.x - p0.x) * segmentT;
+                const y = p0.y + (p1.y - p0.y) * segmentT;
+                
+                points.push({x, y});
+            }
+            
+            return points;
+        }
+        
+        // 绘制轨迹路径
+        function drawTrailPath(points) {
+            // 清除之前的路径
+            trailPath.innerHTML = '';
+            
+            // 设置SVG尺寸
+            const container = document.getElementById('container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            trailPath.setAttribute('width', width);
+            trailPath.setAttribute('height', height);
+            
+            // 创建新的路径
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            let pathData = `M ${points[0].x * width} ${points[0].y * height} `;
+            
+            // 使用折线连接所有点
+            for (let i = 1; i < points.length; i++) {
+                pathData += `L ${points[i].x * width} ${points[i].y * height} `;
+            }
+            
+            path.setAttribute('d', pathData);
+            path.setAttribute('class', 'trail-path');
+            path.setAttribute('stroke', 'rgba(255, 255, 255, 0.6)'); // 半透明白色
+            path.setAttribute('stroke-dasharray', '5,5'); // 虚线效果
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke-width', '2');
+            
+            trailPath.appendChild(path);
+        }
+        
+        // 创建标定点元素
+        function createCalibrationPoint(point, index) {
+            const pointEl = document.createElement('div');
+            pointEl.className = 'calibration-point';
+            pointEl.id = `point-${index}`;
+            pointEl.style.left = `${point.x * 100}%`;
+            pointEl.style.top = `${point.y * 100}%`;
+            
+            // 中心点特殊样式
+            if (point.isCenter) {
+                pointEl.style.backgroundColor = '#3498db';
+                pointEl.innerHTML = `<span class="center-text">中心</span>`;
+            } else {
+                pointEl.style.backgroundColor = '#e74c3c';
+                pointEl.textContent = point.index;
+            }
+            
+            // 添加位置标签
+            const label = document.createElement('div');
+            label.className = 'point-label';
+            label.textContent = `(${Math.round(point.x*100)}%, ${Math.round(point.y*100)}%)`;
+            pointEl.appendChild(label);
+            
+            return pointEl;
+        }
+        
+        // 创建轨迹点元素
+        function createTrailPoint(point, index) {
+            const pointEl = document.createElement('div');
+            pointEl.className = 'trail-point';
+            pointEl.id = `trail-${index}`;
+            pointEl.style.left = `${point.x * 100}%`;
+            pointEl.style.top = `${point.y * 100}%`;
+            return pointEl;
+        }
+        
+        // 显示闪烁效果
+        function showFlash(point) {
+            const flashEl = document.createElement('div');
+            flashEl.className = 'calibration-point flash';
+            flashEl.style.left = `${point.x * 100}%`;
+            flashEl.style.top = `${point.y * 100}%`;
+            flashEl.style.backgroundColor = '#FFFFFF';
+            flashEl.style.width = '60px';
+            flashEl.style.height = '60px';
+            flashEl.style.zIndex = '20';
+            flashEl.style.fontSize = '0'; // 隐藏文字
+            
+            document.getElementById('container').appendChild(flashEl);
+            
+            // 闪烁后移除元素
+            setTimeout(() => {
+                flashEl.remove();
+            }, CONFIG.flashDuration + 100);
+        }
+        
+        // 更新进度条
+        function updateProgress(percent) {
+            progressBar.style.width = `${percent}%`;
+        }
+        
+        // 显示倒计时
+        function showCountdown(seconds, message) {
+            instructions.innerHTML = `
+                <div style="font-size:28px; margin-bottom:25px;">${message}</div>
+                <div id="countdown">${seconds}</div>
+                <div id="encouragement">${ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]}</div>
+            `;
+            
+            let count = seconds;
+            const countdownElement = document.getElementById('countdown');
+            const timer = setInterval(() => {
+                count--;
+                countdownElement.textContent = count;
+                
+                if (count <= 0) {
+                    clearInterval(timer);
+                }
+            }, 1000);
+            
+            return timer; // 返回timer以便外部清除
+        }
+        
+        // 显示所有标定点（准备阶段）
+        function showAllCalibrationPoints() {
+            pointsContainer.innerHTML = '';
+            calibrationState.points.forEach((point, index) => {
+                const pointEl = createCalibrationPoint(point, index);
+                pointsContainer.appendChild(pointEl);
+            });
+        }
+        
+        // 执行标定流程
+        async function runCalibration() {
+            if (calibrationState.isCalibrating) return;
+            
+            calibrationState.isCalibrating = true;
+            
+            // 确保指令框可见 - 添加倒计时功能
+            showInstructions();
+            instructions.innerHTML = `
+                <div style="font-size:32px; margin-bottom:20px;">标定即将开始</div>
+                <div style="font-size:24px; margin-bottom:30px;">请注视屏幕上出现的红点,不要眨眼</div>
+                <div id="point-info">总共 ${CONFIG.calibrationPoints} 个标定点</div>
+                <div style="font-size:32px; margin-bottom:30px; color:#FFD700;">准备时间</div>
+                <div id="countdown" style="font-size:80px; font-weight:bold; color:#3498db; text-shadow:0 0 20px rgba(52, 152, 219, 0.7);">4</div>
+                <div id="encouragement" style="font-size:24px; margin-top:15px; color:#1abc9c;">请保持注视左上角的1号点</div>
+            `;
+            
+            // 添加4秒倒计时
+            let countdown = 4;
+            const countdownElement = document.getElementById('countdown');
+            
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                countdownElement.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    // 倒计时结束后继续执行
+                    proceedWithCalibration();
+                }
+            }, 1000);
+        }
+
+        // 从倒计时结束后继续执行标定流程
+        async function proceedWithCalibration() {
+            // 隐藏指令框
+            hideInstructions();
+            
+            // 初始化标定点
+            calibrationState.points = generateCalibrationPoints();
+            calibrationState.totalSteps = calibrationState.points.length * 2; // 每个点有前后闪烁
+            
+            // 创建点元素
+            showAllCalibrationPoints();
+            
+            // 在第一个点之前添加全屏闪白标记
+            showFullScreenFlash();
+            // 等待闪白效果完成
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // 遍历每个标定点
+            for (let i = 0; i < calibrationState.points.length; i++) {
+                calibrationState.currentPoint = i;
+                const point = calibrationState.points[i];
+                const pointEl = document.getElementById(`point-${i}`);
+                
+                // 步骤1: 闪烁（前）
+                showFlash(point);
+                updateProgress((calibrationState.currentStep++ / calibrationState.totalSteps) * 100);
+                await new Promise(resolve => setTimeout(resolve, CONFIG.flashDuration));
+                
+                // 步骤2: 显示标定点
+                pointEl.classList.add('active-point');
+                hideInstructions();
+                await new Promise(resolve => setTimeout(resolve, CONFIG.flashDuration));
+                
+                // 停留指定时间
+                await new Promise(resolve => {
+                    const progressInterval = setInterval(() => {
+                        const elapsed = performance.now() - startTime;
+                        updateProgress(((calibrationState.currentStep-1)/calibrationState.totalSteps + 
+                                       (elapsed / CONFIG.pointDuration)/calibrationState.totalSteps) * 100);
+                    }, 100);
+                    
+                    const startTime = performance.now();
+                    setTimeout(() => {
+                        clearInterval(progressInterval);
+                        resolve();
+                    }, CONFIG.pointDuration);
+                });
+                
+                // 步骤3: 闪烁（后）
+                pointEl.classList.remove('active-point');
+                showFlash(point);
+                updateProgress((calibrationState.currentStep++ / calibrationState.totalSteps) * 100);
+                await new Promise(resolve => setTimeout(resolve, CONFIG.flashDuration));
+                
+                // 步骤4: 缓冲时间（显示倒计时）- 修复作用域问题
+                if (i < calibrationState.points.length - 1) {
+                    showInstructions();
+                    let timer = showCountdown(
+                        Math.floor(CONFIG.bufferDuration / 1000), 
+                        `眨眼休息一下，准备第${i + 2}个点`
+                    );
+                    
+                    await new Promise(resolve => setTimeout(resolve, CONFIG.bufferDuration));
+                    clearInterval(timer);
+                }
+            } // 结束for循环
+            
+            // 标定完成后（移到循环外部）
+            showInstructions();
+            instructions.innerHTML = `
+                <div style="font-size:36px; margin-bottom:20px; color:#2ecc71;">标定完成！</div>
+                <div style="font-size:24px;">即将开始动态轨迹测试</div>
+                <div style="font-size:24px;">该测试期间可眨眼~</div>
+            `;
+            calibrationState.isCalibrating = false;
+            
+            // 等待后进入测试阶段
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            runDynamicTrailTest();
+        }
+        
+        // 运行动态轨迹测试
+        async function runDynamicTrailTest() {
+            if (calibrationState.isTesting) return;
+            
+            calibrationState.isTesting = true;
+            pointsContainer.innerHTML = '';
+            trailContainer.innerHTML = '';
+            trailPath.innerHTML = '';
+            
+            // 显示测试准备信息
+            showInstructions();
+            instructions.innerHTML = `
+                <div style="font-size:32px; margin-bottom:25px;">动态轨迹测试准备</div>
+                <div style="font-size:24px;">请跟随移动的点</div>
+                <div id="encouragement" style="margin-top:25px; font-size:22px;">测试开始前可以眨眼</div>
+            `;
+                       
+            // 生成轨迹点
+            calibrationState.trailPoints = generateContinuousTrail();
+            
+            // 绘制轨迹路径
+            drawTrailPath(calibrationState.trailPoints);
+            
+            // 创建轨迹点
+            const trailPoint = createTrailPoint(calibrationState.trailPoints[0], 0);
+            trailContainer.appendChild(trailPoint);
+            
+            // 开始移动轨迹
+            hideInstructions(); // 隐藏指令框以免干扰视线
+            instructions.innerHTML = `
+                <div style="font-size:32px; margin-bottom:10px;">请跟随移动的点</div>
+                <div style="font-size:24px; color:#FFD700;">请保持注视移动的点</div>
+                <div style="font-size:20px; margin-top:20px; color:#1abc9c;">轨迹覆盖整个屏幕区域</div>
+            `;
+            showInstructions();
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            hideInstructions(); // 隐藏指令框以免遮挡标定点
+            
+            for (let i = 0; i < calibrationState.trailPoints.length; i++) {
+                calibrationState.currentTrailIndex = i;
+                const point = calibrationState.trailPoints[i];
+                
+                // 更新轨迹点位置
+                trailPoint.style.left = `${point.x * 100}%`;
+                trailPoint.style.top = `${point.y * 100}%`;
+                
+                // 更新进度
+                updateProgress((i / calibrationState.trailPoints.length) * 100);
+                
+                // 控制移动速度
+                await new Promise(resolve => setTimeout(resolve, CONFIG.trailSpeed));
+            }
+            
+            // 测试完成
+            showInstructions();
+            instructions.innerHTML = `
+                <div style="font-size:42px; margin-bottom:30px; color:#2ecc71;">测试完成！</div>
+                <div style="font-size:28px;">感谢您的参与</div>
+                <div id="encouragement" style="margin-top:25px; font-size:24px;">您的数据对研究非常重要</div>
+            `;
+            updateProgress(100);
+            calibrationState.isTesting = false;
+            
+            // 显示控制按钮
+            controlButtons.style.display = 'flex';
+        }
+        
+        // 初始化（修复语法错误）
+        async function init() {
+            // 创建星空背景
+            createStars();
+            
+            // 生成标定点并显示（准备阶段）
+            calibrationState.points = generateCalibrationPoints();
+            showAllCalibrationPoints();
+            
+            // 添加按钮事件监听
+            startBtn.addEventListener('click', () => {
+                runCalibration();
+            });
+            
+            restartBtn.addEventListener('click', () => {
+                location.reload();
+            });
+            
+            exitBtn.addEventListener('click', () => {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                setTimeout(() => {
+                    alert("标定流程已结束，您可以安全关闭此窗口");
+                }, 500);
+            });
+            
+            // 更可靠的全屏检测
+            const isFullscreen = window.innerHeight >= screen.height * 0.95;
+            if (!isFullscreen) {
+                const list = document.getElementById('preparation-list');
+                const warning = document.createElement('li');
+                warning.innerHTML = '<strong style="color:#e74c3c;">警告：当前未全屏，请按F11进入全屏模式</strong>';
+                list.insertBefore(warning, list.firstChild);
+            }
+        } // 移除多余的大括号
+
+        // 启动系统
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
