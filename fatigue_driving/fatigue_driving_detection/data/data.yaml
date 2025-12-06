@@ -1,0 +1,7 @@
+# val_path
+/home/public/RT_GENE/rt_gene/rt_gene_standalone/0722_4corner_video/out_picture
+# number of classes
+nc:4
+
+# class names
+names:['closed_eyes','closed_month','open_eyes','open_mouth']
